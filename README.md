@@ -1,6 +1,6 @@
 # Bitaxe Sentry
 
-A REMOTE monitoring system for Bitaxe miners that tracks performance metrics, sends alerts, and provides a web dashboard.
+A REMOTE monitoring system for Bitaxe miners that tracks performance metrics, sends alerts in discord, and provides a LIVE web dashboard.
 
 ## Overview
 
