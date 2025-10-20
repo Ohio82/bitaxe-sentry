@@ -1,10 +1,10 @@
-# Bitaxe Sentry
+ Bitaxe Sentry
 
 A REMOTE monitoring system for Bitaxe miners that tracks performance metrics, sends alerts in discord, and provides a LIVE web dashboard.
 
 ## Overview
 
-Bitaxe Sentry is a lightweight monitoring solution for bitaxe cryptocurrency miners. It periodically polls miner endpoints, stores the data in an SQLite database, sends alerts via Discord when temperature or voltage thresholds are exceeded, and provides a lightweight dashboard to visualize miner performance.
+Bitaxe Sentry is a lightweight monitoring solution for bitaxe cryptocurrency miners. It periodically polls miner endpoints (adjustable), stores the data in an SQLite database, sends alerts via Discord when temperature or voltage thresholds are exceeded, and provides a lightweight dashboard to visualize miner performance. Along side Shae's program BitaxeLive (with flatline detection), you'll have the perfect combination via information you've ever had!
 
 ### Features
 
@@ -64,6 +64,6 @@ Once running, access the web dashboard at:
 
 If you find this project useful, consider supporting its development:
 
-**Bitcoin**: `bc1qrnywctt0lerrfgyqj5fvf7aulp5rvtr9as25uq`
+**Bitcoin**: `3P5dDchCJCA7U4pGM9GAMNiD2KRoafGXu3`
 
-![Bitcoin QR Code](https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=bitcoin:bc1qrnywctt0lerrfgyqj5fvf7aulp5rvtr9as25uq) 
+![Bitcoin QR Code](https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=bitcoin:3P5dDchCJCA7U4pGM9GAMNiD2KRoafGXu3) 
