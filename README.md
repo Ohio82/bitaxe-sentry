@@ -31,7 +31,7 @@ Bitaxe Sentry is a lightweight monitoring solution for bitaxe cryptocurrency min
 
 ```bash
 # Clone the repository
-git clone https://github.com/zachchan105/bitaxe-sentry.git
+git clone https://github.com/Ohio82/bitaxe-sentry.git
 cd bitaxe-sentry
 
 # Start the services (use -d to run in the background)
