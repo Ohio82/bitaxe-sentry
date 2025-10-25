@@ -1,0 +1,875 @@
+{% extends "base.html" %}
+
+{% block title %}History - Bitaxe Sentry edited by Andrew Freeman{% endblock %}
+{% block nav_history_active %}active{% endblock %}
+
+{% block head_extra %}
+<script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.1/dist/chartjs-adapter-moment.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+<style>
+    .chart-container {
+        position: relative;
+        height: 300px;
+        width: 100%;
+    }
+    .empty-chart-message {
+        display: flex;
+        height: 300px;
+        align-items: center;
+        justify-content: center;
+        color: #6c757d;
+        font-style: italic;
+        background-color: #f8f9fa;
+        border-radius: 0.25rem;
+    }
+    .chart-controls {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 10px;
+        gap: 10px;
+    }
+    .chart-options {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid #dee2e6;
+    }
+    .chart-options .btn {
+        margin-right: 5px;
+    }
+    .chart-options-group {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    .chart-options-group:last-child {
+        margin-left: auto;
+    }
+    .chart-toggle-btn {
+        border-radius: 4px;
+        padding: 0.25rem 0.5rem;
+    }
+    .chart-toggle-btn.active {
+        background-color: #e9ecef;
+        border-color: #ced4da;
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.075);
+    }
+    /* Mobile optimizations */
+    @media (max-width: 767.98px) {
+        .chart-options {
+            justify-content: space-between;
+            flex-wrap: nowrap;
+        }
+        .chart-toggle-btn {
+            padding: 0.25rem 0.4rem;
+            font-size: 0.75rem;
+        }
+        .chart-options .dropdown-menu {
+            min-width: 6rem;
+        }
+        .chart-options-group {
+            gap: 2px;
+        }
+        .chart-options-group:last-child {
+            margin-left: 5px;
+        }
+    }
+    /* Dark theme refinements for history controls */
+    [data-theme="dark"] .chart-options .btn-light,
+    [data-theme="dark"] .chart-options .btn-light:hover,
+    [data-theme="dark"] .chart-options .btn-light:focus {
+        background-color: #2a2a2a;
+        color: #e9ecef;
+        border-color: #3a3a3a;
+    }
+    [data-theme="dark"] .chart-toggle-btn.active {
+        background-color: #343a40;
+        border-color: #3a3a3a;
+        box-shadow: inset 0 1px 2px rgba(0,0,0,0.3);
+    }
+    [data-theme="dark"] .dropdown-toggle.btn-light {
+        background-color: #2a2a2a;
+        color: #e9ecef;
+        border-color: #3a3a3a;
+    }
+    [data-theme="dark"] .form-select {
+        background-color: var(--card-bg);
+        color: var(--text-color);
+        border-color: var(--border-color);
+    }
+    [data-theme="dark"] .form-select:focus {
+        background-color: var(--card-bg);
+        color: var(--text-color);
+        border-color: #495057;
+        box-shadow: 0 0 0 0.2rem rgba(173, 181, 189, 0.15);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+                    <div class="d-flex justify-content-between align-items-center">
+                <h2>Miner History</h2>
+                <div class="form-group">
+                    <select id="minerSelector" class="form-select" onchange="if(this.value==='') { window.location.href='/history'; } else { window.location.href='/history?miner_id=' + this.value; }">
+                        <option value="">All Miners</option>
+                        {% for miner in miners %}
+                        <option value="{{ miner.id }}" {% if miner.id == selected_miner %}selected{% endif %}>
+                            {{ miner.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        <hr>
+    </div>
+</div>
+
+{% if not readings_by_miner %}
+<div class="alert alert-info" role="alert">
+    <h4 class="alert-heading">No history data available!</h4>
+    <p>There is no history data available for the selected time period or miner.</p>
+    <hr>
+    <p class="mb-0">This could be because:</p>
+    <ul>
+        <li>You haven't selected a miner</li>
+        <li>No data has been collected yet</li>
+        <li>The selected miner has no data in the last 24 hours</li>
+    </ul>
+    <p>Wait for more readings to be collected or check your configuration.</p>
+</div>
+{% else %}
+
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 id="hashRateTitle">Hash Rate</h5>
+                <div class="chart-controls">
+                    <button class="btn btn-sm btn-outline-secondary" data-hours="1" onclick="updateAllCharts(1)">1h</button>
+                    <button class="btn btn-sm btn-outline-secondary" data-hours="6" onclick="updateAllCharts(6)">6h</button>
+                    <button class="btn btn-sm btn-outline-secondary active" data-hours="24" onclick="updateAllCharts(24)">24h</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="hashRateChart"></canvas>
+                </div>
+                <div class="chart-options">
+                    <div class="chart-options-group">
+                        <button class="btn btn-sm btn-light chart-toggle-btn active" id="hashRateChartCurved" onclick="toggleCurvedLines('hashRateChart', this)" title="Toggle Curved Lines">
+                            <i class="fas fa-bezier-curve"></i><span class="d-none d-md-inline"> Curved</span>
+                        </button>
+                        <button class="btn btn-sm btn-light chart-toggle-btn active" id="hashRateChartPoints" onclick="toggleDataPoints('hashRateChart', this)" title="Toggle Data Points">
+                            <i class="fas fa-circle"></i><span class="d-none d-md-inline"> Points</span>
+                        </button>
+                    </div>
+                    <div class="chart-options-group">
+                        <div class="btn-group me-2" role="group" aria-label="Units">
+                            <button type="button" id="unitMh" class="btn btn-light btn-sm">MH/s</button>
+                            <button type="button" id="unitTh" class="btn btn-light btn-sm">TH/s</button>
+                        </div>
+                        <div class="dropdown d-inline-block">
+                            <button class="btn btn-sm btn-light dropdown-toggle" type="button" id="hashRateLegendDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="Legend Position">
+                                <i class="fas fa-list"></i><span class="d-none d-md-inline"> Legend</span>
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="hashRateLegendDropdown">
+                                <li><a class="dropdown-item" href="#" onclick="changeLegendPosition('hashRateChart', 'top'); return false;">Top</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="changeLegendPosition('hashRateChart', 'bottom'); return false;">Bottom</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="changeLegendPosition('hashRateChart', 'left'); return false;">Left</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="changeLegendPosition('hashRateChart', 'right'); return false;">Right</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5>Temperature (°C)</h5>
+                <div class="chart-controls">
+                    <button class="btn btn-sm btn-outline-secondary" data-hours="1" onclick="updateAllCharts(1)">1h</button>
+                    <button class="btn btn-sm btn-outline-secondary" data-hours="6" onclick="updateAllCharts(6)">6h</button>
+                    <button class="btn btn-sm btn-outline-secondary active" data-hours="24" onclick="updateAllCharts(24)">24h</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="tempChart"></canvas>
+                </div>
+                <div class="chart-options">
+                    <div class="chart-options-group">
+                        <button class="btn btn-sm btn-light chart-toggle-btn active" id="tempChartCurved" onclick="toggleCurvedLines('tempChart', this)" title="Toggle Curved Lines">
+                            <i class="fas fa-bezier-curve"></i><span class="d-none d-md-inline"> Curved</span>
+                        </button>
+                        <button class="btn btn-sm btn-light chart-toggle-btn active" id="tempChartPoints" onclick="toggleDataPoints('tempChart', this)" title="Toggle Data Points">
+                            <i class="fas fa-circle"></i><span class="d-none d-md-inline"> Points</span>
+                        </button>
+                    </div>
+                    <div class="chart-options-group">
+                        <div class="dropdown d-inline-block">
+                            <button class="btn btn-sm btn-light dropdown-toggle" type="button" id="tempLegendDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="Legend Position">
+                                <i class="fas fa-list"></i><span class="d-none d-md-inline"> Legend</span>
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="tempLegendDropdown">
+                                <li><a class="dropdown-item" href="#" onclick="changeLegendPosition('tempChart', 'top'); return false;">Top</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="changeLegendPosition('tempChart', 'bottom'); return false;">Bottom</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="changeLegendPosition('tempChart', 'left'); return false;">Left</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="changeLegendPosition('tempChart', 'right'); return false;">Right</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5>Voltage (V)</h5>
+                <div class="chart-controls">
+                    <button class="btn btn-sm btn-outline-secondary" data-hours="1" onclick="updateAllCharts(1)">1h</button>
+                    <button class="btn btn-sm btn-outline-secondary" data-hours="6" onclick="updateAllCharts(6)">6h</button>
+                    <button class="btn btn-sm btn-outline-secondary active" data-hours="24" onclick="updateAllCharts(24)">24h</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="voltageChart"></canvas>
+                </div>
+                <div class="chart-options">
+                    <div class="chart-options-group">
+                        <button class="btn btn-sm btn-light chart-toggle-btn active" id="voltageChartCurved" onclick="toggleCurvedLines('voltageChart', this)" title="Toggle Curved Lines">
+                            <i class="fas fa-bezier-curve"></i><span class="d-none d-md-inline"> Curved</span>
+                        </button>
+                        <button class="btn btn-sm btn-light chart-toggle-btn active" id="voltageChartPoints" onclick="toggleDataPoints('voltageChart', this)" title="Toggle Data Points">
+                            <i class="fas fa-circle"></i><span class="d-none d-md-inline"> Points</span>
+                        </button>
+                    </div>
+                    <div class="chart-options-group">
+                        <div class="dropdown d-inline-block">
+                            <button class="btn btn-sm btn-light dropdown-toggle" type="button" id="voltageLegendDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="Legend Position">
+                                <i class="fas fa-list"></i><span class="d-none d-md-inline"> Legend</span>
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="voltageLegendDropdown">
+                                <li><a class="dropdown-item" href="#" onclick="changeLegendPosition('voltageChart', 'top'); return false;">Top</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="changeLegendPosition('voltageChart', 'bottom'); return false;">Bottom</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="changeLegendPosition('voltageChart', 'left'); return false;">Left</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="changeLegendPosition('voltageChart', 'right'); return false;">Right</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Store the readings data for JavaScript -->
+<script id="readings-data" type="application/json">
+{{ readings_by_miner|tojson }}
+</script>
+
+<!-- Store the windowed data for JavaScript -->
+<script id="windowed-data" type="application/json">
+{{ windowed_data|tojson }}
+</script>
+
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Global chart references
+    let hashRateChart = null;
+    let tempChart = null;
+    let voltageChart = null;
+    
+    // Global data storage
+    let rawData = null;
+    let windowedData = null;
+    
+    // Helper to get chart by ID
+    function getChartById(chartId) {
+        if (chartId === 'hashRateChart') return hashRateChart;
+        if (chartId === 'tempChart') return tempChart;
+        if (chartId === 'voltageChart') return voltageChart;
+        return null;
+    }
+    
+    // Helper function to ensure proper timezone handling
+    function parseTimestamp(timestamp) {
+        // Just create a date object directly
+        return new Date(timestamp);
+    }
+    
+    // Format time as HH:MM:SS only
+    function formatTimeOnly(date) {
+        return date.toTimeString().split(' ')[0]; // HH:MM:SS format
+    }
+    
+    // Update all charts with the selected time window
+    function updateAllCharts(hoursWindow) {
+        // Update active buttons for all charts
+        document.querySelectorAll('.chart-controls button').forEach(btn => {
+            btn.classList.remove('active');
+            if (parseInt(btn.getAttribute('data-hours'), 10) === hoursWindow) {
+                btn.classList.add('active');
+            }
+        });
+        
+        // Get the data slice for this time window
+        const dataSlice = windowedData[hoursWindow];
+        
+        // Update chart titles to show the time range
+        document.querySelectorAll('.card-header h5').forEach(title => {
+            const originalTitle = title.getAttribute('data-original-title') || title.textContent;
+            if (!title.getAttribute('data-original-title')) {
+                title.setAttribute('data-original-title', originalTitle);
+            }
+            
+            // Add time window to title
+            if (hoursWindow === 1) {
+                title.textContent = `${originalTitle} (Last hour)`;
+            } else {
+                title.textContent = `${originalTitle} (Last ${hoursWindow} hours)`;
+            }
+        });
+        
+        // Update each chart
+        ['hashRateChart', 'tempChart', 'voltageChart'].forEach(chartId => {
+            updateChartFromSlice(chartId, dataSlice);
+        });
+    }
+    
+    // Update a specific chart from a data slice
+    function updateChartFromSlice(chartId, slice) {
+        const chart = getChartById(chartId);
+        if (!chart) return;
+        
+        // Get button states
+        const curvedButton = document.getElementById(chartId + 'Curved');
+        const pointsButton = document.getElementById(chartId + 'Points');
+        
+        const useCurvedLines = curvedButton ? curvedButton.classList.contains('active') : true;
+        const showPoints = pointsButton ? pointsButton.classList.contains('active') : true;
+        
+        const datasets = [];
+        
+        Object.entries(slice).forEach(([minerName, readings]) => {
+            // Turn each reading into a {x:Date, y:value} point
+            const data = readings.map(r => {
+                // Store both the raw timestamp and the date object
+                return {
+                    x: new Date(r.full_timestamp),
+                                         y: chartId === 'hashRateChart' ? convertHashrate(r.hash_rate)
+                        : chartId === 'tempChart' ? r.temperature
+                        : /* voltageChart */ r.voltage,
+                    rawTimestamp: r.timestamp // Store the raw timestamp for display
+                };
+            });
+            
+            datasets.push({
+                label: minerName,
+                data: data,
+                backgroundColor: getColorForMiner(minerName),
+                borderColor: getColorForMiner(minerName),
+                borderWidth: 2,
+                fill: false,
+                tension: useCurvedLines ? 0.4 : 0, // Use button state
+                pointRadius: showPoints ? 3 : 0, // Use button state
+                pointHoverRadius: 5,
+                spanGaps: true,
+                showLine: true
+            });
+        });
+        
+        // Update the chart
+        chart.data.datasets = datasets;
+        chart.update({
+            duration: 300,
+            easing: 'easeOutQuad'
+        });
+        
+        console.log(`Updated ${chartId} with ${datasets.length} datasets`);
+    }
+    
+    // Toggle curved lines for a chart
+    function toggleCurvedLines(chartId, button) {
+        const chart = getChartById(chartId);
+        if (!chart) return;
+        
+        // Toggle button active state
+        button.classList.toggle('active');
+        const curved = button.classList.contains('active');
+        
+        // Update chart
+        chart.data.datasets.forEach(dataset => {
+            dataset.tension = curved ? 0.4 : 0;
+        });
+        
+        chart.update({
+            duration: 180,
+            easing: 'easeOutQuad'
+        });
+    }
+    
+    // Toggle data points for a chart
+    function toggleDataPoints(chartId, button) {
+        const chart = getChartById(chartId);
+        if (!chart) return;
+        
+        // Toggle button active state
+        button.classList.toggle('active');
+        const showPoints = button.classList.contains('active');
+        
+        // Update chart
+        chart.data.datasets.forEach(dataset => {
+            dataset.pointRadius = showPoints ? 3 : 0;
+        });
+        
+        chart.update({
+            duration: 180,
+            easing: 'easeOutQuad'
+        });
+    }
+    
+    // Change legend position for a chart
+    function changeLegendPosition(chartId, position) {
+        const chart = getChartById(chartId);
+        if (!chart) return;
+        
+        chart.options.plugins.legend.position = position;
+        chart.update({
+            duration: 300,
+            easing: 'easeOutQuad'
+        });
+    }
+    
+    // Get a consistent color for a miner name
+    function getColorForMiner(minerName) {
+        // Predefined color palette with distinct colors
+        const colorPalette = [
+            '#4285F4', // Google Blue
+            '#EA4335', // Google Red
+            '#FBBC05', // Google Yellow
+            '#34A853', // Google Green
+            '#FF9900', // Orange
+            '#9C27B0', // Purple
+            '#00ACC1', // Cyan
+            '#FF5722', // Deep Orange
+            '#3F51B5', // Indigo
+            '#8BC34A', // Light Green
+            '#795548', // Brown
+            '#607D8B', // Blue Grey
+            '#E91E63', // Pink
+            '#673AB7', // Deep Purple
+            '#009688', // Teal
+            '#FFC107', // Amber
+            '#03A9F4', // Light Blue
+            '#CDDC39', // Lime
+            '#FF5252', // Red Accent
+            '#2196F3'  // Blue
+        ];
+        
+        // Static map to store assigned colors
+        if (!window.minerColorMap) {
+            window.minerColorMap = {};
+        }
+        
+        // If this miner already has an assigned color, return it
+        if (window.minerColorMap[minerName]) {
+            return window.minerColorMap[minerName];
+        }
+        
+        // Find all currently used colors
+        const usedColors = Object.values(window.minerColorMap);
+        
+        // Find the first unused color
+        let selectedColor = null;
+        for (const color of colorPalette) {
+            if (!usedColors.includes(color)) {
+                selectedColor = color;
+                break;
+            }
+        }
+        
+        // If all colors are used, use a hash-based approach as fallback
+        if (!selectedColor) {
+            let hash = 0;
+            for (let i = 0; i < minerName.length; i++) {
+                hash = minerName.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            const index = Math.abs(hash) % colorPalette.length;
+            selectedColor = colorPalette[index];
+        }
+        
+        // Store the color for this miner
+        window.minerColorMap[minerName] = selectedColor;
+        
+        return selectedColor;
+    }
+    
+    // Initialize all charts
+    function initCharts() {
+        // Common chart options
+        const commonOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: {
+                duration: 500
+            },
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
+            plugins: {
+                tooltip: {
+                    enabled: true,
+                    callbacks: {
+                        label: function(context) {
+                            // Format the value based on chart type
+                            let formattedValue;
+                            if (context.chart.canvas.id === 'hashRateChart') {
+                                                                 const unit = getCurrentUnit();
+                                formattedValue = context.parsed.y.toFixed(2) + ' ' + (unit === 'TH' ? 'TH/s' : 'GH/s');
+                            } else if (context.chart.canvas.id === 'tempChart') {
+                                formattedValue = context.parsed.y.toFixed(1) + ' °C';
+                            } else { // voltageChart
+                                formattedValue = context.parsed.y.toFixed(2) + ' V';
+                            }
+                            
+                            return `${context.dataset.label}: ${formattedValue}`;
+                        },
+                        title: function(context) {
+                            // Use the raw timestamp if available
+                            if (context[0] && context[0].raw && context[0].raw.rawTimestamp) {
+                                return context[0].raw.rawTimestamp;
+                            }
+                            // Fallback to formatted time
+                            if (context[0] && context[0].raw && context[0].raw.x) {
+                                const date = context[0].raw.x;
+                                return date.toTimeString().split(' ')[0]; // HH:MM:SS format
+                            }
+                            return '';
+                        }
+                    }
+                },
+                legend: {
+                    position: 'top'
+                }
+            },
+            scales: {
+                x: {
+                    type: 'time',
+                    time: {
+                        unit: 'hour',
+                        displayFormats: {
+                            hour: 'HH:mm',
+                            minute: 'HH:mm',
+                            second: 'HH:mm:ss'
+                        }
+                    },
+                    ticks: {
+                        autoSkip: true,
+                        maxTicksLimit: 20,
+                        callback: function(value, index, values) {
+                            // Just show the time part in HH:MM format
+                            const date = new Date(value);
+                            return date.toTimeString().split(':').slice(0, 2).join(':'); // HH:MM format
+                        }
+                    }
+                }
+            },
+            elements: {
+                line: {
+                    tension: 0.4,
+                    borderWidth: 2,
+                    fill: false
+                },
+                point: {
+                    radius: 3,
+                    hoverRadius: 5
+                }
+            }
+        };
+        
+        // Initialize Hash Rate chart
+        const hashRateCtx = document.getElementById('hashRateChart');
+        if (hashRateCtx) {
+            hashRateChart = new Chart(hashRateCtx, {
+                type: 'line',
+                data: {
+                    datasets: []
+                },
+                options: {
+                    ...commonOptions,
+                    scales: {
+                        ...commonOptions.scales,
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: getHashrateUnitLabel()
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Initialize Temperature chart
+        const tempCtx = document.getElementById('tempChart');
+        if (tempCtx) {
+            tempChart = new Chart(tempCtx, {
+                type: 'line',
+                data: {
+                    datasets: []
+                },
+                options: {
+                    ...commonOptions,
+                    scales: {
+                        ...commonOptions.scales,
+                        y: {
+                            title: {
+                                display: true,
+                                text: '°C'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Initialize Voltage chart
+        const voltageCtx = document.getElementById('voltageChart');
+        if (voltageCtx) {
+            voltageChart = new Chart(voltageCtx, {
+                type: 'line',
+                data: {
+                    datasets: []
+                },
+                options: {
+                    ...commonOptions,
+                    scales: {
+                        ...commonOptions.scales,
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'V'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }
+    
+    // Auto-refresh the charts every 60 seconds
+    function setupAutoRefresh() {
+        setInterval(() => {
+            // Get current time window from active buttons
+            const activeButton = document.querySelector('.chart-controls .active');
+            const hoursWindow = activeButton ? parseInt(activeButton.getAttribute('data-hours'), 10) : 24;
+            
+            console.log(`Auto-refreshing charts with ${hoursWindow}h window`);
+            
+            // Reload the data
+            fetch(window.location.href)
+                .then(response => response.text())
+                .then(html => {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const dataElement = doc.getElementById('readings-data');
+                    const windowedDataElement = doc.getElementById('windowed-data');
+                    
+                    if (dataElement && windowedDataElement) {
+                        try {
+                            rawData = JSON.parse(dataElement.textContent.trim());
+                            windowedData = JSON.parse(windowedDataElement.textContent.trim());
+                            
+                            console.log(`Data refreshed at ${new Date().toLocaleTimeString()}`);
+                            
+                            // Update all charts with current time window
+                            updateAllCharts(hoursWindow);
+                        } catch (e) {
+                            console.error("Error processing refreshed data:", e);
+                        }
+                    } else {
+                        console.error("Could not find data elements in refreshed page");
+                    }
+                })
+                .catch(error => console.error('Error refreshing data:', error));
+        }, 60000); // Refresh every 60 seconds
+    }
+    
+    // Apply theme to charts
+    function applyChartTheme(isDark) {
+        const gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+        const tickColor = isDark ? '#e9ecef' : '#212529';
+        const charts = [hashRateChart, tempChart, voltageChart];
+        charts.forEach(c => {
+            if (!c) return;
+            if (c.options.scales && c.options.scales.x) {
+                c.options.scales.x.grid = c.options.scales.x.grid || {};
+                c.options.scales.x.ticks = c.options.scales.x.ticks || {};
+                c.options.scales.x.grid.color = gridColor;
+                c.options.scales.x.ticks.color = tickColor;
+            }
+            if (c.options.scales && c.options.scales.y) {
+                c.options.scales.y.grid = c.options.scales.y.grid || {};
+                c.options.scales.y.ticks = c.options.scales.y.ticks || {};
+                c.options.scales.y.grid.color = gridColor;
+                c.options.scales.y.ticks.color = tickColor;
+            }
+            if (c.options.plugins && c.options.plugins.legend && c.options.plugins.legend.labels) {
+                c.options.plugins.legend.labels.color = tickColor;
+            }
+            c.update('none');
+        });
+    }
+
+    // Listen for theme changes
+    window.addEventListener('themechange', (e) => {
+        if (e && e.detail) applyChartTheme(!!e.detail.isDark);
+    });
+
+    // Units handling for hash rate
+    const unitStorageKey = 'hashrate_unit';
+    function getCurrentUnit() {
+        try { return localStorage.getItem(unitStorageKey) || 'GH'; } catch(e) { return 'GH'; }
+    }
+    function setCurrentUnit(unit) {
+        try { localStorage.setItem(unitStorageKey, unit); } catch(e) {}
+        updateUnitButtons();
+        // Re-render datasets with new unit
+        const activeButton = document.querySelector('.chart-controls .active');
+        const hoursWindow = activeButton ? parseInt(activeButton.getAttribute('data-hours'), 10) : 24;
+        updateAllCharts(hoursWindow);
+    }
+    function updateUnitButtons() {
+        const unit = getCurrentUnit();
+        const mhBtn = document.getElementById('unitMh');
+        const thBtn = document.getElementById('unitTh');
+        if (mhBtn && thBtn) {
+            if (unit === 'TH') {
+                thBtn.classList.add('active');
+                mhBtn.classList.remove('active');
+            } else {
+                mhBtn.classList.add('active');
+                thBtn.classList.remove('active');
+            }
+        }
+    }
+
+    function convertHashrate(value) {
+        const unit = getCurrentUnit();
+        if (unit === 'TH') {
+            return value / 1000.0; // MH/s -> TH/s
+        }
+        return value; // default MH/s
+    }
+
+    function getHashrateUnitLabel() {
+        return getCurrentUnit() === 'TH' ? 'TH/s' : 'GH/s';
+    }
+
+    function updateHashrateAxisUnit() {
+        if (hashRateChart && hashRateChart.options && hashRateChart.options.scales && hashRateChart.options.scales.y && hashRateChart.options.scales.y.title) {
+            hashRateChart.options.scales.y.title.text = getHashrateUnitLabel();
+            hashRateChart.update('none');
+        }
+    }
+
+    function updateHashRateTitle(hoursWindow) {
+        const titleEl = document.getElementById('hashRateTitle');
+        if (!titleEl) return;
+        const unit = getHashrateUnitLabel();
+        const windowText = hoursWindow === 1 ? 'Last hour' : `Last ${hoursWindow} hours`;
+        titleEl.textContent = `Hash Rate (${unit}) (${windowText})`;
+    }
+
+    // Override updateAllCharts to also update titles with unit
+    const _updateAllCharts = updateAllCharts;
+    updateAllCharts = function(hoursWindow) {
+        _updateAllCharts(hoursWindow);
+        updateHashRateTitle(hoursWindow);
+    }
+
+    // Wire unit buttons
+    document.addEventListener('DOMContentLoaded', function() {
+        const mhBtn = document.getElementById('unitMh');
+        const thBtn = document.getElementById('unitTh');
+        if (mhBtn) mhBtn.addEventListener('click', () => { setCurrentUnit('MH'); updateHashrateAxisUnit(); });
+        if (thBtn) thBtn.addEventListener('click', () => { setCurrentUnit('TH'); updateHashrateAxisUnit(); });
+        updateUnitButtons();
+    });
+
+    // Main initialization
+    document.addEventListener('DOMContentLoaded', function() {
+        // Get the data elements with JSON contents
+        const dataElement = document.getElementById('readings-data');
+        const windowedDataElement = document.getElementById('windowed-data');
+        
+        // Only proceed if we have data
+        if (dataElement && windowedDataElement) {
+            try {
+                rawData = JSON.parse(dataElement.textContent.trim());
+                windowedData = JSON.parse(windowedDataElement.textContent.trim());
+                
+                console.log("Raw data loaded for miners:", Object.keys(rawData));
+                console.log("Windowed data loaded for time windows:", Object.keys(windowedData));
+                
+                // Check if we actually have data points
+                let hasData = false;
+                for (const minerName in rawData) {
+                    if (rawData[minerName] && rawData[minerName].length > 0) {
+                        hasData = true;
+                        break;
+                    }
+                }
+                
+                if (!hasData || Object.keys(rawData).length === 0) {
+                    console.log("No data points found");
+                    // Replace chart canvases with "No data" messages
+                    document.querySelectorAll('.chart-container').forEach(container => {
+                        const canvas = container.querySelector('canvas');
+                        if (canvas) {
+                            canvas.remove();
+                            container.innerHTML = '<div class="empty-chart-message">No data points available to display</div>';
+                        }
+                    });
+                } else {
+                    // Initialize charts
+                    initCharts();
+                    
+                    // Update all charts with 24h window initially
+                    updateAllCharts(24);
+                    updateHashRateTitle(24);
+
+                    // Apply initial theme to charts
+                    const isDark = (document.documentElement.getAttribute('data-theme') === 'dark');
+                    applyChartTheme(isDark);
+                    
+                    // Setup auto-refresh
+                    setupAutoRefresh();
+                }
+            } catch (e) {
+                console.error("Error parsing data:", e);
+            }
+        }
+    });
+</script>
+{% endblock %} 
