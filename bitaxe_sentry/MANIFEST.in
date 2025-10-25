@@ -1,2 +1,0 @@
-include bitaxe_sentry/sentry/templates/*.html
-include bitaxe_sentry/.env.example 
