@@ -1,7 +1,4 @@
-requests
-apscheduler
-sqlmodel
-fastapi
-uvicorn
-jinja2
-python-multipart
+discord.py
+python-dotenv
+aiohttp
+matplotlib

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Bitaxe Sentry{% endblock %}</title>
+    <title>{% block title %}Bitaxe Sentry by Andrew Freeman{% endblock %}</title>
     
     <!-- Favicon and App Icons -->
     <link rel="shortcut icon" href="/static/favicon.ico">
@@ -203,7 +203,7 @@
                     </a>
                 </span>
                 <span class="text-muted small">
-                    <a href="https://github.com/zachchan105/bitaxe-sentry" target="_blank" class="text-decoration-none text-muted">
+                    <a href="https://github.com/Ohio82/bitaxe-sentry" target="_blank" class="text-decoration-none text-muted">
                         <i class="bi bi-github"></i> GitHub
                     </a>
                 </span>
@@ -216,14 +216,14 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="donationModalLabel">Support Bitaxe Sentry</h5>
+                    <h5 class="modal-title" id="donationModalLabel">Support Bitaxe Sentry Programmer</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body text-center">
                     <p>If you find this project useful, consider supporting its development with Bitcoin:</p>
                     
                     <div class="bitcoin-address">
-                        bc1qrnywctt0lerrfgyqj5fvf7aulp5rvtr9as25uq
+                        3P5dDchCJCA7U4pGM9GAMNiD2KRoafGXu3
                     </div>
                     
                     <button class="btn btn-sm btn-secondary mb-3 copy-btn" onclick="copyBitcoinAddress()">
@@ -231,7 +231,7 @@
                     </button>
                     
                     <div class="qr-code-container">
-                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=bitcoin:bc1qrnywctt0lerrfgyqj5fvf7aulp5rvtr9as25uq" 
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=bitcoin:3P5dDchCJCA7U4pGM9GAMNiD2KRoafGXu3" 
                              alt="Bitcoin QR Code" class="qr-code">
                     </div>
                     
@@ -289,7 +289,7 @@
     </script>
     <script>
         function copyBitcoinAddress() {
-            navigator.clipboard.writeText('bc1qrnywctt0lerrfgyqj5fvf7aulp5rvtr9as25uq')
+            navigator.clipboard.writeText('3P5dDchCJCA7U4pGM9GAMNiD2KRoafGXu3')
                 .then(() => {
                     // Show a temporary success message
                     const btn = document.querySelector('.btn-secondary');

@@ -13,10 +13,10 @@ CONFIG_FILE_PATH = DATA_DIR / "config.json"
 
 # Default settings
 DEFAULT_SETTINGS = {
-    "POLL_INTERVAL_MINUTES": 15,
-    "RETENTION_DAYS": 30,
+    "POLL_INTERVAL_MINUTES": 20,
+    "RETENTION_DAYS": 35,
     "TEMP_MIN": 20,
-    "TEMP_MAX": 70,
+    "TEMP_MAX": 75,
     "VOLT_MIN": 5.0,
     "BITAXE_ENDPOINTS": [],
     "DISCORD_WEBHOOK_URL": ""
@@ -24,7 +24,7 @@ DEFAULT_SETTINGS = {
 
 def ensure_data_dir():
     """Ensure the data directory exists"""
-    DATA_DIR.mkdir(exist_ok=True)
+    DATA_DIR.mkdir(exist_ok=True, parents=True)
 
 def load_settings():
     """Load settings from JSON file in data directory"""

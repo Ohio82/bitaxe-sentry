@@ -170,7 +170,7 @@
                     </div>
                     <div class="chart-options-group">
                         <div class="btn-group me-2" role="group" aria-label="Units">
-                            <button type="button" id="unitMh" class="btn btn-light btn-sm">MH/s</button>
+                            <button type="button" id="unitMh" class="btn btn-light btn-sm">GH/s</button>
                             <button type="button" id="unitTh" class="btn btn-light btn-sm">TH/s</button>
                         </div>
                         <div class="dropdown d-inline-block">
@@ -325,7 +325,7 @@
         // Update active buttons for all charts
         document.querySelectorAll('.chart-controls button').forEach(btn => {
             btn.classList.remove('active');
-            if (parseInt(btn.getAttribute('data-hours'), 10) === hoursWindow) {
+            if (parseInt(btn.getAttribute('data-hours'), 12) === hoursWindow) {
                 btn.classList.add('active');
             }
         });
@@ -390,7 +390,7 @@
                 fill: false,
                 tension: useCurvedLines ? 0.4 : 0, // Use button state
                 pointRadius: showPoints ? 3 : 0, // Use button state
-                pointHoverRadius: 5,
+                pointHoverRadius: 8,
                 spanGaps: true,
                 showLine: true
             });
@@ -399,7 +399,7 @@
         // Update the chart
         chart.data.datasets = datasets;
         chart.update({
-            duration: 300,
+            duration: 240,
             easing: 'easeOutQuad'
         });
         
@@ -421,7 +421,7 @@
         });
         
         chart.update({
-            duration: 300,
+            duration: 240,
             easing: 'easeOutQuad'
         });
     }
@@ -441,7 +441,7 @@
         });
         
         chart.update({
-            duration: 300,
+            duration: 240,
             easing: 'easeOutQuad'
         });
     }
@@ -453,7 +453,7 @@
         
         chart.options.plugins.legend.position = position;
         chart.update({
-            duration: 300,
+            duration: 240,
             easing: 'easeOutQuad'
         });
     }
@@ -544,7 +544,7 @@
                             let formattedValue;
                             if (context.chart.canvas.id === 'hashRateChart') {
                                                                  const unit = getCurrentUnit();
-                                formattedValue = context.parsed.y.toFixed(2) + ' ' + (unit === 'TH' ? 'TH/s' : 'MH/s');
+                                formattedValue = context.parsed.y.toFixed(2) + ' ' + (unit === 'TH' ? 'TH/s' : 'GH/s');
                             } else if (context.chart.canvas.id === 'tempChart') {
                                 formattedValue = context.parsed.y.toFixed(1) + ' °C';
                             } else { // voltageChart
@@ -712,7 +712,7 @@
                     }
                 })
                 .catch(error => console.error('Error refreshing data:', error));
-        }, 60000); // Refresh every 60 seconds
+        }, 30000); // Refresh every 30 seconds
     }
     
     // Apply theme to charts
@@ -749,7 +749,7 @@
     // Units handling for hash rate
     const unitStorageKey = 'hashrate_unit';
     function getCurrentUnit() {
-        try { return localStorage.getItem(unitStorageKey) || 'MH'; } catch(e) { return 'MH'; }
+        try { return localStorage.getItem(unitStorageKey) || 'GH'; } catch(e) { return 'GH'; }
     }
     function setCurrentUnit(unit) {
         try { localStorage.setItem(unitStorageKey, unit); } catch(e) {}
@@ -777,13 +777,13 @@
     function convertHashrate(value) {
         const unit = getCurrentUnit();
         if (unit === 'TH') {
-            return value / 1000.0; // MH/s -> TH/s
+            return value / 1000.0; // GH/s -> TH/s
         }
-        return value; // default MH/s
+        return value; // default GH/s
     }
 
     function getHashrateUnitLabel() {
-        return getCurrentUnit() === 'TH' ? 'TH/s' : 'MH/s';
+        return getCurrentUnit() === 'TH' ? 'TH/s' : 'GH/s';
     }
 
     function updateHashrateAxisUnit() {
@@ -812,7 +812,7 @@
     document.addEventListener('DOMContentLoaded', function() {
         const mhBtn = document.getElementById('unitMh');
         const thBtn = document.getElementById('unitTh');
-        if (mhBtn) mhBtn.addEventListener('click', () => { setCurrentUnit('MH'); updateHashrateAxisUnit(); });
+        if (mhBtn) mhBtn.addEventListener('click', () => { setCurrentUnit('GH'); updateHashrateAxisUnit(); });
         if (thBtn) thBtn.addEventListener('click', () => { setCurrentUnit('TH'); updateHashrateAxisUnit(); });
         updateUnitButtons();
     });

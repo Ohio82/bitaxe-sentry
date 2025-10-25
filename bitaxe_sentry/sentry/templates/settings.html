@@ -49,7 +49,7 @@
                     <div class="mb-3">
                         <label for="temp_min" class="form-label">Minimum Temperature (°C)</label>
                         <input type="number" class="form-control" id="temp_min" name="TEMP_MIN" 
-                               value="{{ settings.TEMP_MIN }}" min="0" max="50" step="0.1" required>
+                               value="{{ settings.TEMP_MIN }}" min="0" max="30" step="0.1" required>
                         <div class="form-text">Minimum acceptable temperature</div>
                     </div>
                     <div class="mb-3">
@@ -76,7 +76,7 @@
                     {% for endpoint in endpoints %}
                         {% if endpoint.strip() %}
                         <div class="input-group mb-2 endpoint-row">
-                            <input type="text" class="form-control endpoint-input" value="{{ endpoint.strip() }}" placeholder="http://192.168.1.x">
+                            <input type="text" class="form-control endpoint-input" value="{{ endpoint.strip() }}" placeholder="http://10.0.0.x">
                             <button type="button" class="btn btn-outline-danger remove-endpoint" data-index="{{ loop.index0 }}">
                                 <i class="bi bi-trash"></i>
                             </button>

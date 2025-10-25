@@ -81,7 +81,7 @@ def send_alert(miner, reading, alert_type="temperature"):
         
     content = (
       f"{message}\n"
-      f"Temperature: {reading.temperature:.1f}°C | Voltage: {reading.voltage:.2f}V | Hash Rate: {reading.hash_rate:.2f} MH/s"
+      f"Temperature: {reading.temperature:.1f}°C | Voltage: {reading.voltage:.2f}V | Hash Rate: {reading.hash_rate:.2f} GH/s"
     )
     
     try:
@@ -140,7 +140,7 @@ def send_diff_alert(miner, reading):
         
     content = (
       f"🎉 **{miner.name}** new best diff! {reading.best_diff}\n"
-      f"Temperature: {reading.temperature:.1f}°C | Voltage: {reading.voltage:.2f}V | Hash Rate: {reading.hash_rate:.2f} MH/s"
+      f"Temperature: {reading.temperature:.1f}°C | Voltage: {reading.voltage:.2f}V | Hash Rate: {reading.hash_rate:.2f} GH/s"
     )
     
     try:
